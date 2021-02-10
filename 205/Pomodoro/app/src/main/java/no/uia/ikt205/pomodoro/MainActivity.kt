@@ -4,91 +4,185 @@ import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.os.CountDownTimer
 import android.view.View
-import android.widget.Button
-import android.widget.TextView
+import android.widget.*
+import android.text.Editable
+import android.text.TextWatcher
 import android.widget.Toast
 import no.uia.ikt205.pomodoro.util.millisecondsToDescriptiveTime
+import no.uia.ikt205.pomodoro.util.minutesToMilliSeconds
 
 class MainActivity : AppCompatActivity() {
 
     lateinit var timer:CountDownTimer
     lateinit var startButton:Button
-    lateinit var countDownBtn30:Button
-    lateinit var countDownBtn60:Button
-    lateinit var countDownBtn90:Button
-    lateinit var countDownBtn120:Button
-    lateinit var coutdownDisplay:TextView
+    lateinit var countdownViewWork:TextView
+    lateinit var countdownViewPause:TextView
+    lateinit var workSessionsIntervals:EditText
 
-    var countdownStart = 5000L
-    var countdown30min = 1800000L
-    var countdown60min = 3600000L
-    var countdown90min = 5400000L
-    var countdown120min = 7200000L
+    var currentDisplayedWorkTime = 0L
+    var currentDisplayedPauseTime = 0L
     val timeTicks = 1000L
+    var workSession = 0
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-       startButton = findViewById<Button>(R.id.startCountdownButton)
-       startButton.setOnClickListener(){
-           startCountDown(it)
-       }
-
-        countDownBtn30 = findViewById<Button>(R.id.countdown30)
-        countDownBtn30.setOnClickListener(){
-            countdownStart = countdown30min
+        startButton = findViewById<Button>(R.id.startCountdownButton)
+        startButton.setOnClickListener(){
+            startWorkCountDown(it)
         }
 
-        countDownBtn60 = findViewById<Button>(R.id.countdown60)
-        countDownBtn60.setOnClickListener(){
-            countdownStart = countdown60min
-        }
+        countdownViewWork = findViewById<TextView>(R.id.countdownView)
+        countdownViewPause = findViewById<TextView>(R.id.countdownViewPause)
 
-        countDownBtn90 = findViewById<Button>(R.id.countdown90)
-        countDownBtn90.setOnClickListener(){
-            countdownStart = countdown90min
-        }
 
-        countDownBtn120 = findViewById<Button>(R.id.countdown120)
-        countDownBtn120.setOnClickListener(){
-            countdownStart = countdown120min
-        }
+        val setWorkingSeekBar = findViewById<SeekBar>(R.id.setWorkingTimeSeekbar)
+        setWorkingSeekBar?.setOnSeekBarChangeListener(object :
+                SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seek: SeekBar, progress: Int, fromUser: Boolean) {
+                val workSeekbarChanges = minutesToMilliSeconds(progress.toLong())
+                countdownViewWork.text = millisecondsToDescriptiveTime(workSeekbarChanges)
+                currentDisplayedWorkTime = minutesToMilliSeconds(progress.toLong())
+            }
 
-       coutdownDisplay = findViewById<TextView>(R.id.countDownView)
+            override fun onStartTrackingTouch(seek: SeekBar) {
+            }
 
+            override fun onStopTrackingTouch(seek: SeekBar) {
+                Toast.makeText(this@MainActivity,
+                        "Press START to begin a working period of: \n                        " +
+                                "" + seek.progress + " minutes",
+
+                        Toast.LENGTH_SHORT).show()
+            }
+        })
+
+        val setPauseTimeSeekBar = findViewById<SeekBar>(R.id.setPauseTimeSeekbar)
+        setPauseTimeSeekBar?.setOnSeekBarChangeListener(object :
+                SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seek: SeekBar, progress: Int, fromUser: Boolean) {
+                val pauseSeekbarChanges = minutesToMilliSeconds(progress.toLong())
+                countdownViewPause.text = millisecondsToDescriptiveTime(pauseSeekbarChanges)
+                currentDisplayedPauseTime = minutesToMilliSeconds(progress.toLong())
+            }
+
+            override fun onStartTrackingTouch(seek: SeekBar) {
+            }
+
+            override fun onStopTrackingTouch(seek: SeekBar) {
+                Toast.makeText(this@MainActivity,
+                        "Press START to begin a session with: \n                 " +
+                                "" + seek.progress + " minutes brakes",
+
+                        Toast.LENGTH_SHORT).show()
+            }
+        })
+
+        workSessionsIntervals = findViewById<EditText>(R.id.workSessionsIntervals)
+        workSessionsIntervals.addTextChangedListener(object : TextWatcher {
+            override fun onTextChanged(s: CharSequence, start: Int, before: Int, count: Int) {
+                readWorkSessions()
+            }
+
+            override fun beforeTextChanged(s: CharSequence, start: Int, count: Int,
+                                           after: Int) {
+            }
+
+            override fun afterTextChanged(s: Editable) {
+            }
+        })
     }
 
-    fun startCountDown(v: View){
-
-        timer = object : CountDownTimer(countdownStart,timeTicks) {
+    fun startWorkCountDown(v: View){
+        timer = object : CountDownTimer(currentDisplayedWorkTime,timeTicks) {
             override fun onFinish() {
-                Toast.makeText(this@MainActivity,"Arbeidsøkt er ferdig", Toast.LENGTH_SHORT).show()
-                // Bugfix
-                // Her kan man disable knappene ved å bruke isEnabled
-                startButton.isEnabled = true
-                countDownBtn30.isEnabled = true
-                countDownBtn60.isEnabled = true
-                countDownBtn90.isEnabled = true
-                countDownBtn120.isEnabled = true
-            }
+                Toast.makeText(this@MainActivity,"The session is over, enjoy a break", Toast.LENGTH_SHORT).show()
+                startPauseCountdown()
+                val setPauseTimeSeekBar = findViewById<SeekBar>(R.id.setPauseTimeSeekbar)
+                val setWorkingSeekBar = findViewById<SeekBar>(R.id.setWorkingTimeSeekbar)
+                val workSessionsIntervals = findViewById<EditText>(R.id.workSessionsIntervals)
 
+                startButton.isEnabled = true
+                workSessionsIntervals.isEnabled = true
+                setPauseTimeSeekBar.isEnabled = true
+                setWorkingSeekBar.isEnabled = true
+
+            }
             override fun onTick(millisUntilFinished: Long) {
-               updateCountDownDisplay(millisUntilFinished)
+               updateWorkCountDownDisplay(millisUntilFinished)
             }
         }
-
         timer.start()
     }
 
-    fun updateCountDownDisplay(timeInMs:Long){
-        coutdownDisplay.text = millisecondsToDescriptiveTime(timeInMs)
+    fun startPauseCountdown(){
+        val startButton = findViewById<Button>(R.id.startCountdownButton)
 
-        startButton.isEnabled = false
-        countDownBtn30.isEnabled = false
-        countDownBtn60.isEnabled = false
-        countDownBtn90.isEnabled = false
-        countDownBtn120.isEnabled = false
+        timer = object : CountDownTimer(currentDisplayedPauseTime,timeTicks) {
+            override fun onFinish() {
+                Toast.makeText(this@MainActivity,"The break is over, start working", Toast.LENGTH_SHORT).show()
+                checkIntervalNumber()
+                val setPauseTimeSeekBar = findViewById<SeekBar>(R.id.setPauseTimeSeekbar)
+                val setWorkingSeekBar = findViewById<SeekBar>(R.id.setWorkingTimeSeekbar)
+                val workSessionsIntervals = findViewById<EditText>(R.id.workSessionsIntervals)
+
+                startButton.isEnabled = true
+                workSessionsIntervals.isEnabled = true
+                setPauseTimeSeekBar.isEnabled = true
+                setWorkingSeekBar.isEnabled = true
+            }
+
+            override fun onTick(millisUntilFinished: Long) {
+                updatePauseCountDownDisplay(millisUntilFinished)
+            }
+        }
+        timer.start()
+
     }
 
+    fun updatePauseCountDownDisplay(timeInMs:Long){
+        countdownViewPause.text = millisecondsToDescriptiveTime(timeInMs)
+        val setPauseTimeSeekBar = findViewById<SeekBar>(R.id.setPauseTimeSeekbar)
+        val setWorkingSeekBar = findViewById<SeekBar>(R.id.setWorkingTimeSeekbar)
+        val workSessionsIntervals = findViewById<EditText>(R.id.workSessionsIntervals)
+
+        workSessionsIntervals.isEnabled = false
+        startButton.isEnabled = false
+        setPauseTimeSeekBar.isEnabled = false
+        setWorkingSeekBar.isEnabled = false
+    }
+
+    fun updateWorkCountDownDisplay(timeInMs:Long){
+        countdownViewWork.text = millisecondsToDescriptiveTime(timeInMs)
+        val setWorkingSeekBar = findViewById<SeekBar>(R.id.setWorkingTimeSeekbar)
+        val setPauseTimeSeekBar = findViewById<SeekBar>(R.id.setPauseTimeSeekbar)
+        val workSessionsIntervals = findViewById<EditText>(R.id.workSessionsIntervals)
+
+        workSessionsIntervals.isEnabled = false
+        startButton.isEnabled = false
+        setWorkingSeekBar.isEnabled = false
+        setPauseTimeSeekBar.isEnabled = false
+    }
+
+    fun readWorkSessions() {
+        val interval = workSessionsIntervals.text.toString()
+
+        if (interval == ""){
+            return
+        }
+
+        workSession = interval.toInt()
+    }
+
+    fun checkIntervalNumber() {
+        val workSessionsIntervals = findViewById<EditText>(R.id.workSessionsIntervals)
+
+        if (workSession > 1) {
+            workSession -= 1
+            workSessionsIntervals.setText(workSession.toString())
+            startWorkCountDown(startButton)
+        }
+    }
 }
