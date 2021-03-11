@@ -1,5 +1,6 @@
 package com.example.piano
 
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -7,6 +8,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.annotation.RequiresApi
+import androidx.core.net.toUri
 import androidx.fragment.app.Fragment
 import com.example.piano.data.Note
 import com.example.piano.databinding.FragmentPianoLayoutBinding
@@ -17,6 +19,8 @@ import java.util.*
 
 
 class PianoLayout : Fragment() {
+
+    var onSave:((file: Uri) -> Unit)? = null
 
     private var _binding: FragmentPianoLayoutBinding? = null
     private val binding get() = _binding!!
@@ -154,6 +158,7 @@ class PianoLayout : Fragment() {
     }
 
     fun storeMelody(path: File?, fileName:String,){
+        val file = File(path, fileName)
         FileOutputStream(File(path, fileName), true).bufferedWriter().use { writer ->
             score.forEach {
                 writer.write("${it.toString()}\n")
@@ -162,6 +167,7 @@ class PianoLayout : Fragment() {
             writer.write("Total melody Time: $totalMelodyTime \n Saved as: $fileName")
             score.clear()
         }
+        this.onSave?.invoke(file.toUri())
     }
 
     fun checkIfFileExists(directoryFile:String, newFilePath:String): Boolean {
